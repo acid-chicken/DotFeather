@@ -4,123 +4,109 @@ using System.Linq;
 using OpenTK.Graphics.OpenGL;
 using System.Drawing;
 
-namespace DotFeather
-{
+namespace DotFeather {
 /// <summary>
 /// <see cref="Graphic"/> Internal drawable object.
 /// </summary>
-internal class PrimitiveDrawable : IDrawable
-{
-    public Vector[] Buffer {
-        get;
-    }
+internal class PrimitiveDrawable : IDrawable {
+  public Vector[] Buffer { get; }
 
-    public PrimitiveType Primitive {
-        get;
-    }
+  public PrimitiveType Primitive { get; }
 
-    public int ZOrder {
-        get;
-        set;
-    }
-    public string Name {
-        get;
-        set;
-    } = "";
-    public Vector Location {
-        get;
-        set;
-    }
-    public float Angle {
-        get;
-        set;
-    }
-    public Vector Scale {
-        get;
-        set;
-    }
+  public int ZOrder {
+    get;
+    set;
+  }
+  public string Name {
+    get;
+    set;
+  }
+  = "";
+  public Vector Location {
+    get;
+    set;
+  }
+  public float Angle {
+    get;
+    set;
+  }
+  public Vector Scale {
+    get;
+    set;
+  }
 
-    public PrimitiveDrawable(Color c, PrimitiveType primitive, int lineWidth, Color? lineColor, params Vector[] vertexes)
-    {
-        color = c;
-        this.lineWidth = lineWidth;
-        this.lineColor = lineColor;
+  public PrimitiveDrawable(Color c, PrimitiveType primitive, int lineWidth,
+                           Color? lineColor, params Vector[] vertexes) {
+    color = c;
+    this.lineWidth = lineWidth;
+    this.lineColor = lineColor;
 
-        Buffer = vertexes;
-        Primitive = primitive;
-    }
+    Buffer = vertexes;
+    Primitive = primitive;
+  }
 
-    public virtual void Draw(GameBase game, Vector location)
-    {
-        if (Buffer == null)
-            throw new InvalidOperationException("Buffer is null(It seems be a bug.)");
-        if (Buffer.Length == 0)
-            return;
+  public virtual void Draw(GameBase game, Vector location) {
+    if (Buffer == null)
+      throw new InvalidOperationException("Buffer is null(It seems be a bug.)");
+    if (Buffer.Length == 0)
+      return;
 
-        var hw = game.ActualWidth / 2;
-        var hh = game.ActualHeight / 2;
+    var hw = game.ActualWidth / 2;
+    var hh = game.ActualHeight / 2;
 
-        GL.Enable(EnableCap.Blend);
-        GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
+    GL.Enable(EnableCap.Blend);
+    GL.BlendFunc(BlendingFactor.SrcAlpha, BlendingFactor.OneMinusSrcAlpha);
 
-        if (color.A > 0)
-        {
-            using (new GLContext(Primitive))
-            {
-                foreach (var dp in Buffer)
-                {
-                    var vec = dp + Location + location;
-                    vec *= new Vector(Scale.X, Scale.Y);
-                    // Convert device point to viewport point
-                    var vp = vec.ToViewportPoint(hw, hh);
-                    Vertex(color, vp);
-                }
-            }
+    if (color.A > 0) {
+      using(new GLContext(Primitive)) {
+        foreach(var dp in Buffer) {
+          var vec = dp + Location + location;
+          vec *= new Vector(Scale.X, Scale.Y);
+          // Convert device point to viewport point
+          var vp = vec.ToViewportPoint(hw, hh);
+          Vertex(color, vp);
         }
+      }
+    }
 
-        if (lineWidth > 0 && lineColor is Color lc)
-        {
-            GL.LineWidth(lineWidth);
-            using (new GLContext(PrimitiveType.Lines))
-            {
-                Vector? prevVertex = null;
-                Vector? first = null;
-                foreach (var dp in Buffer)
-                {
-                    var vec = dp + Location + location;
-                    vec *= new Vector(Scale.X, Scale.Y);
-                    // Convert device point to viewport point
-                    var vp = vec.ToViewportPoint(hw, hh);
-                    if (first == null)
-                        first = vp;
+    if (lineWidth > 0 && lineColor is Color lc) {
+      GL.LineWidth(lineWidth);
+      using(new GLContext(PrimitiveType.Lines)) {
+        Vector? prevVertex = null;
+        Vector? first = null;
+        foreach(var dp in Buffer) {
+          var vec = dp + Location + location;
+          vec *= new Vector(Scale.X, Scale.Y);
+          // Convert device point to viewport point
+          var vp = vec.ToViewportPoint(hw, hh);
+          if (first == null)
+            first = vp;
 
-                    if (prevVertex is Vector pv)
-                    {
-                        var pVp = pv;
-                        Vertex(lc, pVp);
-                        Vertex(lc, vp);
-                    }
-                    prevVertex = vp;
-                }
-                Vertex(lc, prevVertex ?? Vector.One);
-                Vertex(lc, first ?? Vector.One);
-            }
+          if (prevVertex is Vector pv) {
+            var pVp = pv;
+            Vertex(lc, pVp);
+            Vertex(lc, vp);
+          }
+          prevVertex = vp;
         }
-
-        GL.Disable(EnableCap.Blend);
+        Vertex(lc, prevVertex ?? Vector.One);
+        Vertex(lc, first ?? Vector.One);
+      }
     }
 
-    public virtual void Destroy() { }
+    GL.Disable(EnableCap.Blend);
+  }
 
-    private void Vertex(Color col, Vector vec)
-    {
-        GL.Color4(col);
-        GL.Vertex2(vec.X, vec.Y);
-    }
+  public virtual void Destroy() {}
 
-    private readonly Color color;
-    private readonly int lineWidth;
-    private readonly Color? lineColor;
+  private void Vertex(Color col, Vector vec) {
+    GL.Color4(col);
+    GL.Vertex2(vec.X, vec.Y);
+  }
+
+  private readonly Color color;
+  private readonly int lineWidth;
+  private readonly Color? lineColor;
 }
 
 }
