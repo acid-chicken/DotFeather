@@ -1,365 +1,542 @@
 using System;
-using System.Drawing.Imaging;
-using System.Drawing;
 
 using OpenTK;
 using OpenTK.Graphics;
 using OpenTK.Graphics.OpenGL;
 using System.Collections;
 using System.IO;
+using System.Collections.Generic;
+using System.Linq;
+using SixLabors.ImageSharp;
+using Color = System.Drawing.Color;
+using Size = System.Drawing.Size;
+using SixLabors.ImageSharp.Processing;
+using SixLabors.ImageSharp.PixelFormats;
+using System.Threading;
 
-namespace DotFeather
-{
-	/// <summary>
-	/// DotFeather のメインループおよび、各種メソッドを揃えている、ゲームエントリーポイントの基底クラスです。
-	/// </summary>
-	public abstract class GameBase : IDisposable
-	{
-		/// <summary>
-		/// ウィンドウの X 座標を取得または設定します。
-		/// </summary>
-		public int X
-		{
-			get => window.X;
-			set => window.X = value;
-		}
+namespace DotFeather {
+/// <summary>
+/// DotFeather
+/// のメインループおよび、各種メソッドを揃えている、ゲームエントリーポイントの基底クラスです。
+/// </summary>
+public abstract class GameBase : IDisposable {
+  /// <summary>
+  /// Get or set X coordinate of this window.
+  /// </summary>
+  public int X {
+    get => window.X;
+    set => window.X = value;
+  }
 
-		/// <summary>
-		/// ウィンドウの Y 座標を取得または設定します。
-		/// </summary>
-		public int Y
-		{
-			get => window.Y;
-			set => window.Y = value;
-		}
+  /// <summary>
+  /// Get or set Y coordinate of this window.
+  /// </summary>
+  public int Y {
+    get => window.Y;
+    set => window.Y = value;
+  }
 
-		/// <summary>
-		/// ウィンドウが表示されているかどうかを示す値を取得または設定します。
-		/// </summary>
-		public bool Visible
-		{
-			get => window.Visible;
-			set => window.Visible = value;
-		}
+  /// <summary>
+  /// Get or set whether this window is visible.
+  /// </summary>
+  public bool Visible {
+    get => window.Visible;
+    set => window.Visible = value;
+  }
 
-		/// <summary>
-		/// このウィンドウの幅を取得または設定します。
-		/// </summary>
-		/// <value>The width.</value>
-		public int Width
-		{
-			get => window.Size.Width;
-			set => window.Size = new Size(value, window.Size.Height);
-		}
+  /// <summary>
+  /// Get or set virtual width of this window.
+  /// </summary>
+  /// <value>The width.</value>
+  public int Width {
+    get => (int)(window.ClientSize.Width / (FollowsDpi ? Dpi : 1));
+    set => window.ClientSize = new Size((int)(value * (FollowsDpi ? Dpi : 1)),
+                                        window.ClientSize.Height);
+  }
 
-		/// <summary>
-		/// このウィンドウの高さを取得または設定します。
-		/// </summary>
-		/// <value>The height.</value>
-		public int Height
-		{
-			get => window.Size.Height;
-			set => window.Size = new Size(window.Size.Width, value);
-		}
+  /// <summary>
+  /// Get or set virtual height of this window.
+  /// </summary>
+  /// <value>The height.</value>
+  public int Height {
+    get => (int)(window.ClientSize.Height / (FollowsDpi ? Dpi : 1));
+    set => window.ClientSize =
+        new Size(window.ClientSize.Width, (int)(value * (FollowsDpi ? Dpi : 1)));
+  }
 
-		/// <summary>
-		/// このウィンドウが現在フォーカスされているかどうかを取得します。
-		/// </summary>
-		/// <value>The height.</value>
-		public bool IsFocused => window.Focused;
+  /// <summary>
+  /// Get or set actual width of this window.
+  /// </summary>
+  /// <value>The width.</value>
+  public int ActualWidth {
+    get => window.ClientSize.Width;
+    set => window.ClientSize = new Size(value, window.ClientSize.Height);
+  }
 
-		/// <summary>
-		/// ウィンドウの背景色を取得または設定します。
-		/// </summary>
-		public Color BackgroundColor { get; set; }
+  /// <summary>
+  /// Get or set actual height of this window.
+  /// </summary>
+  /// <value>The height.</value>
+  public int ActualHeight {
+    get => window.ClientSize.Height;
+    set => window.ClientSize = new Size(window.ClientSize.Width, value);
+  }
 
-		/// <summary>
-		/// このウィンドウのリフレッシュレートを取得または設定します。
-		/// </summary>
-		/// <value>The refresh rate.</value>
-		public int RefreshRate { get; }
+  /// <summary>
+  /// Get whether this window is focused.
+  /// </summary>
+  /// <value>The height.</value>
+  public bool IsFocused => window.Focused;
 
-		/// <summary>
-		/// このウィンドウのタイトルを取得または設定します。
-		/// </summary>
-		/// <value>ウィンドウタイトル。</value>
-		public string Title
-		{
-			get => window?.Title;
-			set => window.Title = value;
-		}
+  /// <summary>
+  /// Get or set background color of this window.
+  /// </summary>
+  public Color BackgroundColor {
+    get;
+    set;
+  }
 
-		/// <summary>
-		/// このウィンドウのトップレベル <see cref="Container"/> を取得または設定します。
-		/// </summary>
-		public Container Root { get; } = new Container();
+  /// <summary>
+  /// Get or set refresh rate of this window.
+  /// </summary>
+  /// <value>The refresh rate.</value>
+  public int RefreshRate { get; }
 
-		/// <summary>
-		/// 現在のディスプレイの DPI を取得します。
-		/// </summary>
-		public float Dpi { get; private set; }
+  /// <summary>
+  /// Get or set title of this window.
+  /// </summary>
+  public string Title {
+    get => window.Title;
+    set => window.Title = value;
+  }
 
-		/// <summary>
-		/// 起動後からのトータルフレーム数を取得します。
-		/// </summary>
-		/// <value></value>
-		public long TotalFrame { get; private set; }
+  /// <summary>
+  /// Get or set a top level <see cref="Container"/>  of this window.
+  /// </summary>
+  public Container Root { get; }
+  = new Container();
 
-		/// <summary>
-		/// ゲームがキャプチャモードであるかどうかを取得します。
-		/// </summary>
-		public bool IsCaptureMode { get; private set; }
+  /// <summary>
+  /// Get DPI of the current display.
+  /// </summary>
+  public float Dpi => (float) window.ClientSize.Width / window.Size.Width;
 
-		/// <summary>
-		/// 現在のウィンドウ状態を取得または設定します。
-		/// </summary>
-		public WindowMode WindowMode
-		{
-			get
-			{
-				return  window.WindowBorder == WindowBorder.Resizable ? WindowMode.Resizable :
-						window.WindowBorder == WindowBorder.Fixed ? WindowMode.Fixed :
-						window.WindowBorder == WindowBorder.Hidden ? WindowMode.NoFrame :
-						throw new InvalidOperationException("unexpected window state");
-			}
-			set
-			{
-				switch (value)
-				{
-					case WindowMode.Fixed:
-						window.WindowBorder = WindowBorder.Fixed;
-						break;
-					case WindowMode.NoFrame:
-						window.WindowBorder = WindowBorder.Hidden;
-						break;
-					case WindowMode.Resizable:
-						window.WindowBorder = WindowBorder.Resizable;
-						break;
-				}
-			}
-		}
+  /// <summary>
+  /// Get or set whether the game follows your display's DPI.
+  /// If true, the window will be scaled according to your display's DPI.
+  /// If you are creating video, this setting won't suitable.
+  /// </summary>
+  public bool FollowsDpi {
+    get;
+    set;
+  }
 
-		/// <summary>
-		/// ゲームがフルスクリーンであるかどうかを取得または設定します。
-		/// </summary>
-		public bool IsFullScreen
-		{
-			get => window.WindowState == WindowState.Fullscreen;
-			set => window.WindowState = value ? WindowState.Fullscreen : WindowState.Normal;
-		}
+  /// <summary>
+  /// Get total number of frames since startup.
+  /// </summary>
+  /// <value></value>
+  public long TotalFrame {
+    get;
+    private set;
+  }
 
-		/// <summary>
-		/// 指定したパラメーターで、 <see cref="GameBase"/> クラスの新しいインスタンスを初期化します。
-		/// </summary>
-		/// <param name="width">幅.</param>
-		/// <param name="height">高さ.</param>
-		/// <param name="title">タイトル.</param>
-		/// <param name="refreshRate">リフレッシュレート.</param>
-		/// <param name="isCaptureMode"><see langword="true"/> にするとキャプチャーモードになります。キャプチャーモードにした場合、カレントディレクトリにcapturedフォルダが生成され、自動的に全フレームの連番画像が生成されます。非常に動作が遅くなりますが、常にリフレッシュレートとFPSが一致している状態として振る舞います。映像作品の制作に用いてください。</param>
-		protected GameBase(int width, int height, string title = null, int refreshRate = 60, bool isCaptureMode = false)
-		{
-			RefreshRate = refreshRate;
-			IsCaptureMode = isCaptureMode;
+  /// <summary>
+  /// Get whether the game is in capture mode.
+  /// </summary>
+  public bool IsCaptureMode {
+    get;
+    private set;
+  }
 
-			window = new GameWindow(width, height, GraphicsMode.Default, title ?? "DotFeather Window", GameWindowFlags.FixedWindow)
-			{
-				VSync = VSyncMode.Adaptive,
-				TargetRenderFrequency = refreshRate,
-				TargetUpdateFrequency = refreshRate,
-			};
+  /// <summary>
+  /// Get or set a text color of the console.
+  /// </summary>
+  /// <value></value>
+  public Color ForegroundColor {
+    get;
+    set;
+  }
+  = Color.White;
 
-			if (!Directory.Exists("./shot"))
-			{
-				Directory.CreateDirectory("shot");
-			}
+  /// <summary>
+  /// Get or set a cursor of the console.
+  /// </summary>
+  public VectorInt ConsoleCursor {
+    get;
+    set;
+  }
 
-			window.Load += (s, e) =>
-			{
-				GL.ClearColor(Color.Black);
-				GL.LineWidth(1);
-				GL.Disable(EnableCap.DepthTest);
+  /// <summary>
+  /// Get or set a font size of the console.
+  /// </summary>
+  /// <value></value>
+  public int ConsoleSize {
+    get;
+    set;
+  }
+  = 16;
 
-				window.WindowBorder = WindowBorder.Resizable;
-				OnLoad(s, e);
-			};
+  /// <summary>
+  /// Get or set current window mode.
+  /// </summary>
+  public WindowMode WindowMode {
+    get {
+      return window.WindowBorder ==
+             WindowBorder.Resizable ? WindowMode.Resizable
+          : window.WindowBorder ==
+             WindowBorder.Fixed ? WindowMode.Fixed : window.WindowBorder ==
+             WindowBorder.Hidden ? WindowMode.NoFrame
+          : throw new InvalidOperationException("unexpected window state");
+    }
+    set {
+      switch (value) {
+      case WindowMode.Fixed:
+        window.WindowBorder = WindowBorder.Fixed;
+        break;
+      case WindowMode.NoFrame:
+        window.WindowBorder = WindowBorder.Hidden;
+        break;
+      case WindowMode.Resizable:
+        window.WindowBorder = WindowBorder.Resizable;
+        break;
+      }
+    }
+  }
 
-			window.Resize += (s, e) =>
-			{
-				GL.Viewport(window.ClientRectangle);
-				OnResize(s, e);
-			};
+  /// <summary>
+  /// Get or set whether the game is in fullscreen.
+  /// </summary>
+  public bool IsFullScreen {
+    get => window.WindowState == WindowState.Fullscreen;
+    set => window.WindowState =
+        value ? WindowState.Fullscreen : WindowState.Normal;
+  }
 
-			window.RenderFrame += OnRenderFrame;
-			window.Unload += OnUnload;
-			window.KeyDown += (s, e) => OnKeyDown(s, new DFKeyEventArgs(e));
-			window.KeyUp += (s, e) => OnKeyUp(s, new DFKeyEventArgs(e));
+  public void Print(object? obj) {
+    var text = obj as string ?? obj?.ToString() ?? "null";
+    var (x, y) = ConsoleCursor;
+    x = Math.Max(0, x);
+    y = Math.Max(0, y);
+    if (y < consoleBuffer.Count) {
+      // 置換
+      consoleBuffer[y] = consoleBuffer[y].ReplaceAt(x, text);
+    } else {
+      // 挿入
+      consoleBuffer.AddRange(Enumerable.Repeat("", y - consoleBuffer.Count));
+      consoleBuffer.Add(new string(' ', x) + text);
+    }
+    ConsoleCursor = new VectorInt(0, y + 1);
+  }
 
-			window.MouseMove += (object sender, OpenTK.Input.MouseMoveEventArgs e) =>
-				Input.Mouse.Position = new System.Drawing.Point((int)(e.Position.X / Dpi), (int)(e.Position.Y / Dpi));
-		}
+  public void Cls() {
+    consoleBuffer.Clear();
+    ConsoleSize = 16;
+    ConsoleCursor = VectorInt.Zero;
+  }
 
-		/// <summary>
-		/// 乱数を指定したシード値で初期化します。
-		/// </summary>
-		/// <param name="seed">シード値。<c>null</c> であれば、 <see cref="System.Random"/> の標準のコンストラクターを呼びます。</param>
-		public void Randomize(int? seed = null)
-		{
-			Random = seed is int s ? new Random(s) : new Random();
-		}
+  /// <summary>
+  /// Initialize a new instance of <see cref="GameBase"/> class with specified
+  /// parameters.
+  /// </summary>
+  /// <param name="width"></param>
+  /// <param name="height"></param>
+  /// <param name="title"></param>
+  /// <param name="refreshRate"></param>
+  /// <param name="isCaptureMode">Set <see langword="true"/> to enable capture
+  /// mode. When the capture mode is enabled, a captured folder is created in
+  /// the current directory, and all frame sequential images are automatically
+  /// created. Although the operation is very slow, it always behaves as if the
+  /// refresh rate and FPS match. Please use it for the production of video
+  /// works.にするとキャプチャーモードになります。キャプチャーモードにした場合、カレントディレクトリにcapturedフォルダが生成され、自動的に全フレームの連番画像が生成されます。非常に動作が遅くなりますが、常にリフレッシュレートとFPSが一致している状態として振る舞います。映像作品の制作に用いてください。</param>
+  /// <param name="followsDpi">
+  /// Whether the game follows your display's DPI.
+  /// If true, the window will be scaled according to your display's DPI.
+  /// If you are creating video, this setting won't suitable.
+  /// </param>
+  protected GameBase(int width, int height, string title = "",
+                     int refreshRate = 60, bool isCaptureMode = false,
+                     bool followsDpi = false) {
+    ctx = new DFSynchronizationContext();
+    SynchronizationContext.SetSynchronizationContext(ctx);
 
-		/// <summary>
-		/// ゲームを実行します。
-		/// </summary>
-		/// <returns>返り値。</returns>
-		public int Run()
-		{
-			window.Run(RefreshRate);
-			return statusCode ?? 0;
-		}
+    RefreshRate = refreshRate;
+    IsCaptureMode = isCaptureMode;
+    FollowsDpi = followsDpi;
 
-		/// <summary>
-		/// ゲームを終了します。
-		/// </summary>
-		/// <param name="status">返り値。</param>
-		public void Exit(int status = 0)
-		{
-			statusCode = status;
-			window.Close();
-		}
+    window = new GameWindow(width, height, GraphicsMode.Default,
+                            title ?? "DotFeather Window",
+                            GameWindowFlags.FixedWindow){
+        VSync = VSyncMode.Adaptive,
+        TargetRenderFrequency = refreshRate,
+        TargetUpdateFrequency = refreshRate,
+    };
 
-		/// <summary>
-		/// Releases all resource used by the <see cref="T:DotFeather.GameBase"/> object.
-		/// </summary>
-		/// <remarks>Call <see cref="Dispose"/> when you are finished using the <see cref="T:DotFeather.GameBase"/>. The
-		/// <see cref="Dispose"/> method leaves the <see cref="T:DotFeather.GameBase"/> in an unusable state. After calling
-		/// <see cref="Dispose"/>, you must release all references to the <see cref="T:DotFeather.GameBase"/> so the garbage
-		/// collector can reclaim the memory that the <see cref="T:DotFeather.GameBase"/> was occupying.</remarks>
-		public void Dispose()
-		{
-			window.Dispose();
-		}
+    if (IsCaptureMode && !Directory.Exists("./shot")) {
+      Directory.CreateDirectory("shot");
+    }
 
-		/// <summary>
-		/// 現在の画面のスクリーンショットを撮影します。
-		/// </summary>
-		public Bitmap TakeScreenshot()
-		{
-			if (GraphicsContext.CurrentContext == null)
-				throw new GraphicsContextMissingException();
-			int w = Width;
-			int h = Height;
-			Bitmap bmp = new Bitmap(w, h);
-			System.Drawing.Imaging.BitmapData data =
-				bmp.LockBits(new Rectangle(0, 0, w, h), System.Drawing.Imaging.ImageLockMode.WriteOnly, System.Drawing.Imaging.PixelFormat.Format24bppRgb);
-			GL.ReadPixels(0, 0, w, h, OpenTK.Graphics.OpenGL.PixelFormat.Bgr, PixelType.UnsignedByte, data.Scan0);
-			bmp.UnlockBits(data);
+    window.Load += (s, e) => {
+      GL.ClearColor(Color.Black);
+      GL.LineWidth(1);
+      GL.Disable(EnableCap.DepthTest);
+      Load?.Invoke(s, e);
+      OnLoad(s, e);
+    };
 
-			bmp.RotateFlip(RotateFlipType.RotateNoneFlipY);
-			return bmp;
-		}
+    window.Resize += (s, e) => {
+      GL.Viewport(window.ClientRectangle);
+      Resize?.Invoke(s, e);
+      OnResize(s, e);
+    };
 
-		/// <summary>
-		/// コルーチンを開始します。
-		/// </summary>
-		public Coroutine StartCoroutine(IEnumerator coroutine) => CoroutineRunner.Start(coroutine);
+    window.FileDrop += (s, e) => {
+      var a = new DFFileDroppedEventArgs(e.FileName);
+      FileDrop?.Invoke(s, a);
+      OnFileDrop(s, a);
+    };
 
-		/// <summary>
-		/// コルーチンを停止します。
-		/// </summary>
-		public void StopCoroutine(Coroutine coroutine) => CoroutineRunner.Stop(coroutine);
+    window.RenderFrame += OnRenderFrame;
 
-		/// <summary>
-		/// ゲームのフレーム更新時に呼び出されます。このメソッドをオーバーライドして、ゲームのメインループを記述してください。
-		/// </summary>
-		protected virtual void OnUpdate(object sender, DFEventArgs e) { }
+    window.Unload += (s, e) => {
+      Unload?.Invoke(s, e);
+      OnUnload(s, e);
+    };
 
-		/// <summary>
-		/// ウィンドウが開かれたときに一度だけ呼び出されます。
-		/// </summary>
-		protected virtual void OnLoad(object sender, EventArgs e) { }
+    window.KeyPress += (s, e) => {
+      DFKeyboard.keychars.Enqueue(e.KeyChar);
 
-		/// <summary>
-		/// ウィンドウが閉じられるときに一度だけ呼び出されます。
-		/// </summary>
-		protected virtual void OnUnload(object sender, EventArgs e) { }
+      KeyPress?.Invoke(s, new DFKeyPressEventArgs(e.KeyChar));
 
-		/// <summary>
-		/// ウィンドウがリサイズされたときに呼び出されます。
-		/// </summary>
-		protected virtual void OnResize(object sender, EventArgs e) { }
+      OnKeyPress(s, new DFKeyPressEventArgs(e.KeyChar));
+    };
 
-		/// <summary>
-		/// キーが押されたときに呼び出されます。
-		/// </summary>
-		protected virtual void OnKeyDown(object sender, DFKeyEventArgs e) { }
+    window.KeyDown += (s, e) => {
+      KeyDown?.Invoke(s, new DFKeyEventArgs(e));
 
-		/// <summary>
-		/// キーが離されたときに呼び出されます。
-		/// </summary>
-		protected virtual void OnKeyUp(object sender, DFKeyEventArgs e) { }
+      OnKeyDown(s, new DFKeyEventArgs(e));
+    };
 
-		/// <summary>
-		/// 乱数生成器を取得します。
-		/// </summary>
-		protected Random Random { get; private set; } = new Random();
+    window.KeyUp += (s, e) => {
+      KeyUp?.Invoke(s, new DFKeyEventArgs(e));
+      OnKeyUp(s, new DFKeyEventArgs(e));
+    };
 
-		private void OnRenderFrame(object sender, FrameEventArgs e)
-		{
-			GL.ClearColor(BackgroundColor);
-			GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
+    window.MouseMove += (object sender, OpenTK.Input.MouseMoveEventArgs e) =>
+        DFMouse.Position =
+            new VectorInt((int)(e.Position.X / (FollowsDpi ? Dpi : 1)),
+                          (int)(e.Position.Y / (FollowsDpi ? Dpi : 1)));
 
-			var deltaTime = IsCaptureMode ? 1d / RefreshRate : e.Time;
-			Time.Now += deltaTime;
-			Time.DeltaTime = deltaTime;
+    console =
+        new TextDrawable("", Font.GetDefault(ConsoleSize), ForegroundColor);
+  }
 
-			CalculateFps();
+  /// <summary>
+  /// Initializes a random number with the specified seed value.
+  /// </summary>
+  /// <param name="seed">Seed value. If <c>null</c>, the default constructor of
+  /// <see cref="System.Random"/> will be called.</param>
+    public void Randomize(int? seed = null)
+    {
+      Random = seed is int s ? new Random(s) : new Random();
+    }
 
-			Root.Draw(this, Vector.Zero);
+    /// <summary>
+    /// Run the game.
+    /// </summary>
+    /// <returns>Status code.</returns>
+    public int Run() {
+      window.Run(RefreshRate);
+      return statusCode ?? 0;
+    }
 
-			Update(sender);
+    /// <summary>
+    /// End the game.
+    /// </summary>
+    /// <param name="status">Status code.</param>
+    public void Exit(int status = 0) {
+      statusCode = status;
+      window.Close();
+    }
 
-			Dpi = (float)window.ClientSize.Width / window.Size.Width;
+    /// <summary>
+    /// Releases all resource used by the <see cref="T:DotFeather.GameBase"/>
+    /// object.
+    /// </summary>
+    /// <remarks>Call <see cref="Dispose"/> when you are finished using the <see
+    /// cref="T:DotFeather.GameBase"/>. The <see cref="Dispose"/> method leaves
+    /// the <see cref="T:DotFeather.GameBase"/> in an unusable state. After
+    /// calling <see cref="Dispose"/>, you must release all references to the
+    /// <see cref="T:DotFeather.GameBase"/> so the garbage collector can reclaim
+    /// the memory that the <see cref="T:DotFeather.GameBase"/> was
+    /// occupying.</remarks>
+    public void Dispose() { window.Dispose(); }
 
-			window.ProcessEvents();
+    /// <summary>
+    /// Take a screenshot of the current screen.
+    /// </summary>
+    public Image TakeScreenshot() {
+      if (GraphicsContext.CurrentContext == null)
+        throw new GraphicsContextMissingException();
 
-			if (IsCaptureMode)
-			{
-				var path = $"./shot/{TotalFrame:00000000}.png";
-				if (!File.Exists(path))
-				{
-					GL.Flush();
-					var bmp = TakeScreenshot();
-					bmp.Save(path, ImageFormat.Png);
-					bmp.Dispose();
-				}
-				TotalFrame++;
-			}
-			window.SwapBuffers();
-		}
+      var arr = new byte[ActualWidth * ActualHeight * 4];
 
-		private void Update(object sender)
-		{
-			Input.Keyboard.Update();
-			Input.Mouse.Update();
-			CoroutineRunner.Update();
-			Root.OnUpdate(this);
-			OnUpdate(sender, new DFEventArgs { DeltaTime = Time.DeltaTime });
-		}
+      GL.ReadPixels<byte>(0, 0, ActualWidth, ActualHeight,
+                          OpenTK.Graphics.OpenGL.PixelFormat.Rgba,
+                          PixelType.UnsignedByte, arr);
 
-		private void CalculateFps()
-		{
-			frameCount++;
-			if (prevSecond != DateTime.Now.Second)
-			{
-				Time.Fps = frameCount;
-				frameCount = 0;
-				prevSecond = DateTime.Now.Second;
-			}
-		}
+      var img = Image.LoadPixelData<Rgba32>(arr, ActualWidth, ActualHeight);
 
-		private int? statusCode;
-		private int frameCount;
-		private int prevSecond;
-		private readonly GameWindow window;
-	}
+      img.Mutate(i => i.Flip(FlipMode.Vertical));
+
+      return img;
+    }
+
+    /// <summary>
+    /// Start the coroutine.
+    /// </summary>
+    public Coroutine
+    StartCoroutine(IEnumerator coroutine) => CoroutineRunner.Start(coroutine);
+
+    /// <summary>
+    /// Stop the coroutine.
+    /// </summary>
+    public void
+    StopCoroutine(Coroutine coroutine) => CoroutineRunner.Stop(coroutine);
+
+    /// <summary>
+    /// Called when the game frame is updated. Override this method to write the
+    /// main loop of the game.
+    /// </summary>
+    protected virtual void OnUpdate(object sender, DFEventArgs e) {}
+
+    /// <summary>
+    /// Called once when the window is opened.
+    /// </summary>
+    protected virtual void OnLoad(object sender, EventArgs e) {}
+
+    /// <summary>
+    /// Called once when the window is closed.
+    /// </summary>
+    protected virtual void OnUnload(object sender, EventArgs e) {}
+
+    /// <summary>
+    /// Called once when the window is closed.
+    /// </summary>
+    protected virtual void OnFileDrop(object sender, DFFileDroppedEventArgs e) {
+    }
+
+    /// <summary>
+    /// Called when the window is resized.
+    /// </summary>
+    protected virtual void OnResize(object sender, EventArgs e) {}
+
+    /// <summary>
+    /// Called when the key pressed.
+    /// </summary>
+    protected virtual void OnKeyPress(object sender, DFKeyPressEventArgs e) {}
+
+    /// <summary>
+    /// Called when the key pressed.
+    /// </summary>
+    protected virtual void OnKeyDown(object sender, DFKeyEventArgs e) {}
+
+    /// <summary>
+    /// Called when the key released.
+    /// </summary>
+    protected virtual void OnKeyUp(object sender, DFKeyEventArgs e) {}
+
+    /// <summary>
+    /// Get a random generator.
+    /// </summary>
+    protected Random Random {
+      get;
+      private set;
+    }
+    = new Random();
+
+    private void OnRenderFrame(object sender, FrameEventArgs e) {
+      GL.ClearColor(BackgroundColor);
+      GL.Clear(ClearBufferMask.ColorBufferBit | ClearBufferMask.DepthBufferBit);
+
+      var deltaTime = IsCaptureMode ? 1f / RefreshRate : (float) e.Time;
+      Time.Now += deltaTime;
+      Time.DeltaTime = deltaTime;
+
+      CalculateFps();
+
+      var s = Root.Scale;
+      Root.Scale = s * (FollowsDpi ? Dpi : 1);
+      Root.Draw(this, Vector.Zero);
+      Root.Scale = s;
+
+      console.Draw(this, Vector.Zero);
+
+      Update(sender);
+
+      ctx.Update();
+
+      window.ProcessEvents();
+
+      if (IsCaptureMode) {
+        var path = $"./shot/{TotalFrame:00000000}.png";
+        if (!File.Exists(path)) {
+          GL.Flush();
+          using var bmp = TakeScreenshot();
+          using var stream = File.OpenWrite(path);
+          bmp.SaveAsPng(stream);
+        }
+      }
+      TotalFrame++;
+      window.SwapBuffers();
+    }
+
+    private void Update(object sender) {
+      DFKeyboard.Update();
+      DFMouse.Update();
+      CoroutineRunner.Update();
+      UpdateConsole();
+      Root.OnUpdate(this);
+      OnUpdate(sender, new DFEventArgs{DeltaTime = (float) Time.DeltaTime});
+    }
+
+    private void UpdateConsole() {
+      var f = console.Font;
+      if (f.Size != ConsoleSize * Dpi)
+        console.Font = Font.GetDefault(ConsoleSize * Dpi);
+
+      var maxLine = Height / ConsoleSize;
+
+      var buf = consoleBuffer.Count >
+                maxLine ? consoleBuffer.Skip(consoleBuffer.Count - maxLine)
+          : consoleBuffer;
+
+      console.Color = ForegroundColor;
+      console.Text = string.Join('\n', buf);
+    }
+
+    private void CalculateFps() {
+      frameCount++;
+      if (prevSecond != DateTime.Now.Second) {
+        Time.Fps = frameCount;
+        frameCount = 0;
+        prevSecond = DateTime.Now.Second;
+      }
+    }
+
+    public event EventHandler<EventArgs>? Load;
+    public event EventHandler<EventArgs>? Unload;
+    public event EventHandler<DFFileDroppedEventArgs>? FileDrop;
+    public event EventHandler<EventArgs>? Resize;
+    public event EventHandler<DFKeyEventArgs>? KeyDown;
+    public event EventHandler<DFKeyPressEventArgs>? KeyPress;
+    public event EventHandler<DFKeyEventArgs>? KeyUp;
+
+    private int ? statusCode;
+    private int frameCount;
+    private int prevSecond;
+    private readonly List<string>consoleBuffer = new List<string>();
+    private readonly TextDrawable console;
+    private readonly GameWindow window;
+    private readonly DFSynchronizationContext ctx;
+}
 }

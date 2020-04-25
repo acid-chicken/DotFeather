@@ -1,15 +1,13 @@
-namespace DotFeather
-{
-	/// <summary>
-	/// DotFeather Window のモードを列挙します。
-	/// </summary>
-	public enum WindowMode
-	{
-		/// <summary>リサイズ可能。</summary>
-		Resizable,
-		/// <summary>サイズ固定。</summary>
-		Fixed,
-		/// <summary>フレーム無し。</summary>
-		NoFrame,
-	}
+namespace DotFeather {
+/// <summary>
+/// Enumerates modes of the DotFeather Window.
+/// </summary>
+public enum WindowMode {
+  /// <summary>Resizable.</summary>
+  Resizable,
+  /// <summary>Fixed size.</summary>
+  Fixed,
+  /// <summary>No window frame.</summary>
+  NoFrame,
+}
 }

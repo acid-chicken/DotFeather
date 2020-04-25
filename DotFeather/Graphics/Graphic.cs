@@ -4,207 +4,228 @@ using System.Drawing;
 using OpenTK.Graphics.OpenGL;
 using static DotFeather.MiscUtility;
 
-namespace DotFeather
-{
-	/// <summary>
-	/// 図形描画を行える、グラフィック用のレイヤーです。
-	/// </summary>
-	public class Graphic : IDrawable
-	{
-		/// <summary>
-		/// 現在の <see cref="Graphic"/> が持つ描画オブジェクトのリストを取得します。
-		/// </summary>
-		/// <value>描画可能オブジェクトのリスト。</value>
-		public List<IDrawable> Drawables { get; } = new List<IDrawable>();
+namespace DotFeather {
+/// <summary>
+/// This is a graphic layer to draw shapes.
+/// </summary>
+public class Graphic : IContainable {
+  /// <summary>
+  /// Get the list of drawing objects that the current <see cref="Graphic"/>
+  /// has.
+  /// </summary>
+  /// <value>A list of drawable objects</value>
+  public List<IDrawable>Drawables { get; }
+  = new List<IDrawable>();
 
-		/// <summary></summary>
-		public Vector Location { get; set; }
-		/// <summary></summary>
-		public float Angle { get; set; }
-		/// <summary></summary>
-		public Vector Scale { get; set; } = Vector.One;
-		/// <summary></summary>
-		public int ZOrder { get; set; }
-		/// <summary></summary>
-		public string Name { get; set; }
+  public Vector Location {
+    get;
+    set;
+  }
 
-		/// <summary>
-		/// 実際に画面へ描画を行います。
-		/// </summary>
-		public void Draw(GameBase game, Vector location)
-		{
-			// Drawables を用いて毎フレーム描画を行う
-			for (var i = Drawables.Count - 1; i >= 0; i--)
-			{
-				Drawables[i].Scale = Scale;
-				Drawables[i].Draw(game, Location + location);
-			}
-		}
+  public float Angle {
+    get;
+    set;
+  }
 
-		/// <summary>
-		/// 点を描画します。
-		/// </summary>
-		/// <param name="pos">座標.</param>
-		/// <param name="color">色.</param>
-		public Graphic Pixel(Point pos, Color color)
-		{
-			Drawables.Add(new PrimitiveDrawable(color, PrimitiveType.Points, 0, null, ((PointF)pos)));
-			return this;
-		}
+  public Vector Scale {
+    get;
+    set;
+  }
+  = Vector.One;
 
-		/// <summary>
-		/// 点を描画します。
-		/// </summary>
-		/// <param name="x">Z座標。</param>
-		/// <param name="y">Y座標。</param>
-		/// <param name="color">色.</param>
-		public Graphic Pixel(int x, int y, Color color)
-		{
-			return Pixel(new Point(x, y), color);
-		}
+  public int ZOrder {
+    get;
+    set;
+  }
 
-		/// <summary>
-		/// 線を描画します。
-		/// </summary>
-		/// <param name="begin">始点の座標.</param>
-		/// <param name="end">終点の座標.</param>
-		/// <param name="color">色.</param>
-		public Graphic Line(Point begin, Point end, Color color)
-		{
-			Drawables.Add(new PrimitiveDrawable(color, PrimitiveType.Lines, 0, null, ((PointF)begin), ((PointF)end)));
-			return this;
-		}
+  public string Name {
+    get;
+    set;
+  }
+  = "";
 
-		/// <summary>
-		/// 線を描画します。
-		/// </summary>
-		/// <param name="x1">始点のX座標。</param>
-		/// <param name="y1">始点のY座標。</param>
-		/// <param name="x2">終点のX座標。</param>
-		/// <param name="y2">終点のX座標。</param>
-		/// <param name="color">色.</param>
-		public Graphic Line(int x1, int y1, int x2, int y2, Color color)
-		{
-			return Line(new Point(x1, y1), new Point(x2, y2), color);
-		}
+  /// <summary>
+  /// Get a parent of this drawable.
+  /// </summary>
+  public IContainable? Parent {
+    get;
+    internal set;
+  }
 
-		/// <summary>
-		/// 矩形を描画します。
-		/// </summary>
-		/// <param name="begin">始点の座標.</param>
-		/// <param name="end">終点の座標.</param>
-		/// <param name="color">色.</param>
-		/// <param name="lineWidth">線の幅。</param>
-		/// <param name="lineColor">線の色。</param>
-		public Graphic Rect(Point begin, Point end, Color color, int lineWidth = 0, Color? lineColor = default)
-		{
-			return Rect(begin.X, begin.Y, end.X, end.Y, color, lineWidth, lineColor);
-		}
+  IContainable? IContainable.Parent {
+    get => Parent;
+    set => Parent = value;
+  }
 
-		/// <summary>
-		/// 矩形を描画します。
-		/// </summary>
-		/// <param name="x1">始点のX座標。</param>
-		/// <param name="y1">始点のY座標。</param>
-		/// <param name="x2">終点のX座標。</param>
-		/// <param name="y2">終点のX座標。</param>
-		/// <param name="color">色.</param>
-		/// <param name="lineWidth">線の幅。</param>
-		/// <param name="lineColor">線の色。</param>
-		public Graphic Rect(int x1, int y1, int x2, int y2, Color color, int lineWidth = 0, Color? lineColor = default)
-		{
-			Drawables.Add(new PrimitiveDrawable(color, PrimitiveType.Quads, lineWidth, lineColor,
-				new PointF(x1, y1),
-				new PointF(x1, y2),
-				new PointF(x2, y2),
-				new PointF(x2, y1)));
-			return this;
-		}
+  /// <summary>
+  /// Get absolute location.
+  /// </summary>
+  public Vector AbsoluteLocation =>
+      Location + (Parent?.AbsoluteLocation ?? Vector.Zero);
 
-		/// <summary>
-		/// 三角形を描画します。
-		/// </summary>
-		public Graphic Triangle(int x1, int y1, int x2, int y2, int x3, int y3, Color color, int lineWidth = 0, Color? lineColor = default)
-		{
-			Drawables.Add(new PrimitiveDrawable(color, PrimitiveType.Triangles,lineWidth, lineColor,
-				new PointF(x1, y1),
-				new PointF(x2, y2),
-				new PointF(x3, y3)));
-			return this;
-		}
+  public void Draw(GameBase game, Vector location) {
+    // Drawables を用いて毎フレーム描画を行う
+    for (var i = 0; i < Drawables.Count; i++) {
+      Drawables[i].Scale = Scale;
+      Drawables[i].Draw(game, Location + location);
+    }
+  }
 
-		/// <summary>
-		/// 三角形を描画します。
-		/// </summary>
-		public Graphic Triangle(Point p1, Point p2, Point p3, Color color, int lineWidth = 0, Color? lineColor = default)
-		{
-			return Triangle(p1.X, p1.Y, p2.X, p2.Y, p3.X, p3.Y, color, lineWidth, lineColor);
-		}
+  /// <summary>
+  /// Draw a point.
+  /// </summary>
+  public Graphic Pixel(VectorInt pos, Color color) {
+    Drawables.Add(
+        new PrimitiveDrawable(color, PrimitiveType.Points, 0, null, pos));
+    return this;
+  }
 
-		/// <summary>
-		/// 楕円を描画します。
-		/// </summary>
-		public Graphic Ellipse(int x1, int y1, int x2, int y2, Color color, int lineWidth = 0, Color? lineColor = default)
-		{
-			var list = new List<PointF>();
+  /// <summary>
+  /// Draw a point.
+  /// </summary>
+  public Graphic Pixel(int x, int y, Color color) {
+    return Pixel(new VectorInt(x, y), color);
+  }
 
-			if (x1 > x2) Swap(ref x1, ref x2);
-			if (y1 > y2) Swap(ref y1, ref y2);
+  /// <summary>
+  /// Draw a line.
+  /// </summary>
+  /// <param name="begin">Position of the start point.</param>
+  /// <param name="end">Position of the end point.</param>
+  /// <param name="color">color.</param>
+  public Graphic Line(VectorInt begin, VectorInt end, Color color) {
+    Drawables.Add(
+        new PrimitiveDrawable(color, PrimitiveType.Lines, 0, null, begin, end));
+    return this;
+  }
 
-			var (width, height) = (x2 - x1, y2 - y1);
+  /// <summary>
+  /// Draw a line.
+  /// </summary>
+  /// <param name="x1">X coordinate of the start point.</param>
+  /// <param name="y1">Y coordinate of the start point.</param>
+  /// <param name="x2">X coordinate of the end point.</param>
+  /// <param name="y2">X coordinate of the end point.</param>
+  /// <param name="color">color.</param>
+  public Graphic Line(int x1, int y1, int x2, int y2, Color color) {
+    return Line(new VectorInt(x1, y1), new VectorInt(x2, y2), color);
+  }
 
-			// 大きさに応じて頂点数いじる
-			var verts = Math.Min(360, (width + height) / 10);
+  /// <summary>
+  /// Draw a rectangle.
+  /// </summary>
+  /// <param name="begin">Position of the start point.</param>
+  /// <param name="end">Position of the end point.</param>
+  /// <param name="color">Color.</param>
+  /// <param name="lineWidth">Width of the outline.</param>
+  /// <param name="lineColor">Color of the outline.</param>
+  public Graphic Rect(VectorInt begin, VectorInt end, Color color,
+                      int lineWidth = 0, Color? lineColor = default) {
+    return Rect(begin.X, begin.Y, end.X, end.Y, color, lineWidth, lineColor);
+  }
 
-			for (int i = 0; i < 360; i += 360 / verts)
-			{
-				var (rw, rh) = (width / 2, height / 2);
-				var (ox, oy) = (x1 + rw, y1 + rh);
+  /// <summary>
+  /// Draw a rectangle.
+  /// </summary>
+  /// <param name="x1">X coordinate of the start point.</param>
+  /// <param name="y1">Y coordinate of the start point.</param>
+  /// <param name="x2">X coordinate of the end point.</param>
+  /// <param name="y2">X coordinate of the end point.</param>
+  /// <param name="color">Color.</param>
+  /// <param name="lineWidth">Width of the outline.</param>
+  /// <param name="lineColor">Color of the outline.</param>
+  public Graphic Rect(int x1, int y1, int x2, int y2, Color color,
+                      int lineWidth = 0, Color? lineColor = default) {
+    Drawables.Add(new PrimitiveDrawable(
+        color, PrimitiveType.Quads, lineWidth, lineColor, new Vector(x1, y1),
+        new Vector(x1, y2), new Vector(x2, y2), new Vector(x2, y1)));
+    return this;
+  }
 
-				list.Add(new PointF(
-					(float)(Math.Cos(DFMath.ToRadian(i)) * rw + ox),
-					(float)(Math.Sin(DFMath.ToRadian(i)) * rh + oy)
-				));
+  /// <summary>
+  /// Draw a triangle.
+  /// </summary>
+  public Graphic Triangle(int x1, int y1, int x2, int y2, int x3, int y3,
+                          Color color, int lineWidth = 0,
+                          Color? lineColor = default) {
+    Drawables.Add(new PrimitiveDrawable(
+        color, PrimitiveType.Triangles, lineWidth, lineColor,
+        new Vector(x1, y1), new Vector(x2, y2), new Vector(x3, y3)));
+    return this;
+  }
 
-			}
+  /// <summary>
+  /// Draw a triangle.
+  /// </summary>
+  public Graphic Triangle(VectorInt p1, VectorInt p2, VectorInt p3, Color color,
+                          int lineWidth = 0, Color? lineColor = default) {
+    return Triangle(p1.X, p1.Y, p2.X, p2.Y, p3.X, p3.Y, color, lineWidth,
+                    lineColor);
+  }
 
-			Drawables.Add(new PrimitiveDrawable(color, PrimitiveType.Polygon, lineWidth, lineColor, list.ToArray()));
-			return this;
-		}
+  /// <summary>
+  /// Draw an ellipse.
+  /// </summary>
+  public Graphic Ellipse(int x1, int y1, int x2, int y2, Color color,
+                         int lineWidth = 0, Color? lineColor = default) {
+    var list = new List<Vector>();
 
-		/// <summary>
-		/// 楕円を描画します。
-		/// </summary>
-		public Graphic Ellipse(Point p1, Point p2, Color color, int lineWidth = 0, Color? lineColor = default)
-		{
-			return Ellipse(p1.X, p1.Y, p2.X, p2.Y, color, lineWidth, lineColor);
-		}
+    if (x1 > x2)
+      Swap(ref x1, ref x2);
+    if (y1 > y2)
+      Swap(ref y1, ref y2);
 
-		/// <summary>
-		/// テクスチャを描画します。
-		/// </summary>
-		/// <param name="x">The first x value.</param>
-		/// <param name="y">The first y value.</param>
-		/// <param name="texture">テクスチャ。</param>
-		public Graphic Texture(int x, int y, Texture2D texture)
-		{
-			Drawables.Add(new Sprite(texture, x, y));
-			return this;
-		}
+    var (width, height) = (x2 - x1, y2 - y1);
 
-		/// <summary>
-		/// このグラフィックレイヤーを削除します。
-		/// </summary>
-		public Graphic Clear()
-		{
-	Drawables.ForEach(d => d.Destroy());
-			Drawables.Clear();
-			return this;
-		}
+    // 大きさに応じて頂点数いじる
+    var verts = Math.Min(360, (width + height) / 10);
 
-		/// <summary>
-		/// この <see cref="Graphic"/> を削除します。
-		/// </summary>
-		public void Destroy() => Clear();
-	}
+    for (int i = 0; i < 360; i += (int)(360 / verts)) {
+      var (rw, rh) = (width / 2, height / 2);
+      var (ox, oy) = (x1 + rw, y1 + rh);
+
+      list.Add(new Vector((float)(Math.Cos(DFMath.ToRadian(i)) * rw + ox),
+                          (float)(Math.Sin(DFMath.ToRadian(i)) * rh + oy)));
+    }
+
+    Drawables.Add(new PrimitiveDrawable(color, PrimitiveType.Polygon, lineWidth,
+                                        lineColor, list.ToArray()));
+    return this;
+  }
+
+  /// <summary>
+  /// Draw an ellipse.
+  /// </summary>
+  public Graphic Ellipse(VectorInt p1, VectorInt p2, Color color,
+                         int lineWidth = 0, Color? lineColor = default) {
+    return Ellipse(p1.X, p1.Y, p2.X, p2.Y, color, lineWidth, lineColor);
+  }
+
+  /// <summary>
+  /// Draw a texture.
+  /// </summary>
+  /// <param name="x">The first x value.</param>
+  /// <param name="y">The first y value.</param>
+  /// <param name="texture">A texture.</param>
+  public Graphic Texture(int x, int y, Texture2D texture) {
+    Drawables.Add(new Sprite(texture){
+        Location = new Vector(x, y),
+    });
+    return this;
+  }
+
+  /// <summary>
+  /// Clear this graphic layer.
+  /// </summary>
+  public Graphic Clear() {
+    Drawables.ForEach(d => d.Destroy());
+    Drawables.Clear();
+    return this;
+  }
+
+  /// <summary>
+  /// Destroy this <see cref="Graphic"/>.
+  /// </summary>
+  public virtual void Destroy() => Clear();
+}
 }

@@ -1,23 +1,30 @@
 using System;
-namespace DotFeather
-{
-	/// <summary>
-	/// 時間に関係する情報を提供します。
-	/// </summary>
-	public static class Time
-	{
-		/// <summary>
-		/// ゲームが起動してからの時刻を取得します。
-		/// </summary>
-		public static double Now { get; internal set; }
-		/// <summary>
-		/// 前回フレームとの差分時間を取得します。
-		/// </summary>
-		public static double DeltaTime { get; internal set; }
+namespace DotFeather {
+/// <summary>
+/// Provides time related information.
+/// </summary>
+public static class Time {
+  /// <summary>
+  /// Get the time since the game started.
+  /// </summary>
+  public static float Now {
+    get;
+    internal set;
+  }
+  /// <summary>
+  /// Get the delta time from the previous frame.
+  /// </summary>
+  public static float DeltaTime {
+    get;
+    internal set;
+  }
 
-		/// <summary>
-		/// 現在のフレームレートを取得します。
-		/// </summary>
-		public static int Fps { get; internal set; }
-	}
+  /// <summary>
+  /// Get the current frame rate.
+  /// </summary>
+  public static int Fps {
+    get;
+    internal set;
+  }
+}
 }

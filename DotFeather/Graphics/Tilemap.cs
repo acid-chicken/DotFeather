@@ -1,200 +1,249 @@
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.Linq;
 using static DotFeather.MiscUtility;
 
-namespace DotFeather
-{
-	/// <summary>
-	/// <see cref="ITile"/> オブジェクトを格子状にレンダリングする <see cref="IDrawable"/> オブジェクトです。
-	/// </summary>
-	public class Tilemap : IDrawable
-	{
-		/// <summary>
-		/// </summary>
-		public int ZOrder { get; set; }
-		/// <summary>
-		/// </summary>
-		public string Name { get; set; }
-		/// <summary>
-		/// </summary>
-		public Vector Location { get; set; }
-		/// <summary>
-		/// </summary>
-		public float Angle { get; set; }
-		/// <summary>
-		/// </summary>
-		public Vector Scale { get; set; } = Vector.One;
-		/// <summary>
-		/// </summary>
-		public Color? DefaultColor { get; set; }
+namespace DotFeather {
+/// <summary>
+/// A <see cref="IDrawable"/> object to render <see cref="ITile"/> objects in a
+/// lattice.
+/// </summary>
+public class Tilemap : IContainable {
+  public int ZOrder {
+    get;
+    set;
+  }
 
-		/// <summary>
-		/// タイルあたりのピクセス単位のサイズを取得または設定します。
-		/// </summary>
-		/// <value></value>
-		public Vector TileSize { get; set; }
+  public string Name {
+    get;
+    set;
+  }
+  = "";
 
-		/// <summary>
-		/// <see cref="Tilemap"/> クラスの新しいインスタンスを初期化します。
-		/// </summary>
-		/// <param name="tileSize">タイル1枚あたりのサイズ。</param>
-		public Tilemap(Vector tileSize)
-		{
-			TileSize = tileSize;
-			tiles = new Dictionary<(int, int), (ITile, Color?)>();
-		}
+  public Vector Location {
+    get;
+    set;
+  }
 
-		/// <summary>
-		///  指定した位置にあるタイルを取得または設定します。
-		/// </summary>
-		public ITile this[int x, int y]
-		{
-			get => GetTileAt(x, y);
-			set => SetTile(x, y, value);
-		}
+  public float Angle {
+    get;
+    set;
+  }
 
-		/// <summary>
-		///  指定した位置にあるタイルを取得または設定します。
-		/// </summary>
-		public ITile this[Vector point]
-		{
-			get => GetTileAt(point);
-			set => SetTile(point, value);
-		}
+  public Vector Scale {
+    get;
+    set;
+  }
+  = Vector.One;
 
-		/// <summary>
-		/// </summary>
-		public void Draw(GameBase game, Vector location)
-		{
-			foreach (var kv in tiles)
-			{
-				var (x, y) = kv.Key;
-				var loc = new Vector(x, y) * TileSize * Scale;
-				kv.Value.tile.Draw(game, this, Location + location + loc, kv.Value.color);
-			}
-		}
+  public Color? DefaultColor {
+    get;
+    set;
+  }
 
-		/// <summary>
-		/// 指定した位置にあるタイルを取得します。
-		/// </summary>
-		public ITile GetTileAt(Vector point) => GetTileAt((int)point.X, (int)point.Y);
-		/// <summary>
-		/// 指定した位置にあるタイルを取得します。
-		/// </summary>
-		public ITile GetTileAt(int x, int y) => tiles.ContainsKey((x, y)) ? tiles[(x, y)].tile : default;
+  /// <summary>
+  /// Get current drawing position. <c>null</c> when not in ITile.Draw()
+  /// </summary>
+  /// <value></value>
+  public VectorInt? CurrentDrawingPosition {
+    get;
+    private set;
+  }
 
-		/// <summary>
-		/// 指定した位置にあるタイルの色を取得します。
-		/// </summary>
-		public Color? GetTileColorAt(Vector point) => GetTileColorAt((int)point.X, (int)point.Y);
-		/// <summary>
-		/// 指定した位置にあるタイルの色を取得します。
-		/// </summary>
-		public Color? GetTileColorAt(int x, int y) => tiles.ContainsKey((x, y)) ? tiles[(x, y)].color : default;
+  /// <summary>
+  /// Get a parent of this drawable.
+  /// </summary>
+  public IContainable? Parent {
+    get;
+    internal set;
+  }
 
-		/// <summary>
-		/// 指定した位置にタイルを設置します。
-		/// </summary>
-		public void SetTile(Vector point, ITile tile, Color? color = default) => SetTile((int)point.X, (int)point.Y, tile, color);
+  IContainable? IContainable.Parent {
+    get => Parent;
+    set => Parent = value;
+  }
 
-		/// <summary>
-		/// 指定した位置にタイルを設置します。
-		/// </summary>
-		public void SetTile(int x, int y, ITile tile, Color? color = default)
-		{
-			if (tile == default)
-				tiles.Remove((x, y));
-			else
-				tiles[(x, y)] = (tile, color ?? DefaultColor);
-		}
+  /// <summary>
+  /// Get absolute location.
+  /// </summary>
+  public Vector AbsoluteLocation =>
+      Location + (Parent?.AbsoluteLocation ?? Vector.Zero);
 
-		/// <summary>
-		/// タイルを全て削除します。
-		/// </summary>
-		public void Clear()
-		{
-			tiles.Clear();
-		}
+  /// <summary>
+  /// Get or set the size in pixels per tile.
+  /// </summary>
+  public Vector TileSize {
+    get;
+    set;
+  }
 
-		/// <summary>
-		/// タイルを線形描画します。
-		/// </summary>
-		public void Line(int x1, int y1, int x2, int y2, ITile tile)
-		{
-			var steep = Math.Abs(y2 - y1) > Math.Abs(x2 - x1);
-			// 左上から右下に描くよう正規化する
-			if (steep)
-			{
-				Swap(ref x1, ref y1);
-				Swap(ref x2, ref y2);
-			}
-			if (x1 > x2)
-			{
-				Swap(ref x1, ref x2);
-				Swap(ref y1, ref y2);
-			}
+  /// <summary>
+  /// Initialize a new instance of <see cref="Tilemap"/> class.
+  /// </summary>
+  /// <param name="tileSize">Size per the tile.</param>
+  public Tilemap(Vector tileSize) {
+    TileSize = tileSize;
+    tiles = new Dictionary<(int, int), (ITile, Color?)>();
+  }
 
-			var deltaX = x2 - x1;
-			var deltaY = Math.Abs(y2 - y1);
-			var error = deltaX / 2;
-			int ystep;
-			var y = y1;
-			if (y1 < y2)
-				ystep = 1;
-			else
-				ystep = -1;
+  /// <summary>
+  /// Get or set the tile at the specified position.
+  /// </summary>
+  public ITile? this[int x, int y] {
+    get => GetTileAt(x, y);
+    set => SetTile(x, y, value);
+  }
 
-			for (var x = x1; x <= x2; x++)
-			{
-				if (steep)
-					this[y, x] = tile;
-				else
-					this[x, y] = tile;
+  /// <summary>
+  /// Get or set the tile at the specified position.
+  /// </summary>
+  public ITile? this[Vector point] {
+    get => GetTileAt(point);
+    set => SetTile(point, value);
+  }
 
-				error -= deltaY;
-				if (error < 0)
-				{
-					y += ystep;
-					error += deltaX;
-				}
-			}
-		}
+  public void Draw(GameBase game, Vector location) {
+    // カリング
+    bool filter(KeyValuePair<(int, int), (ITile, Color?)>kv) {
+      var (x, y) = kv.Key;
+      var (left, top) =
+          Location + location + new Vector(x, y) * TileSize *Scale;
+      var right = left + TileSize.X * Scale.X;
+      var bottom = top + TileSize.Y * Scale.Y;
+      return left <= game.ActualWidth && top <= game.ActualHeight &&
+             right >= 0 && bottom >= 0;
+    }
 
-		/// <summary>
-		/// 指定した矩形にタイルを並べます。
-		/// </summary>
-		public void Fill(int x1, int y1, int width, int height, ITile tile)
-		{
-			for (var y = y1; y < y1 + height; y++)
-				for (var x = x1; x < x1 + width; x++)
-					this[x, y] = tile;
-		}
+    foreach(var kv in tiles.Where(filter)) {
+      var (x, y) = kv.Key;
+      var loc = new Vector(x, y) * TileSize *Scale;
+      CurrentDrawingPosition = new VectorInt(x, y);
+      kv.Value.tile.Draw(game, this, Location + location + loc, kv.Value.color);
+    }
+    CurrentDrawingPosition = null;
+  }
 
-		/// <summary>
-		/// タイルを線形描画します。
-		/// </summary>
-		public void Line(Vector start, Vector end, ITile tile)
-			=> Line((int)start.X, (int)start.Y, (int)end.X, (int)end.Y, tile);
+  /// <summary>
+  ///  Get the tile at the specified position.
+  /// </summary>
+  public ITile? GetTileAt(Vector point) => GetTileAt((int) point.X,
+                                                     (int) point.Y);
+  /// <summary>
+  ///  Get the tile at the specified position.
+  /// </summary>
+  public ITile? GetTileAt(int x, int y) => tiles.ContainsKey((x, y))
+                                               ? tiles[(x, y)].tile
+                                               : default;
 
-		/// <summary>
-		/// 指定した矩形にタイルを並べます。
-		/// </summary>
-		public void Fill(Vector position, Vector size, ITile tile)
-			=> Line((int)position.X, (int)position.Y, (int)size.X, (int)size.Y, tile);
+  /// <summary>
+  /// Get color of the tile at the specified position.
+  /// </summary>
+  public Color? GetTileColorAt(Vector point) => GetTileColorAt((int) point.X,
+                                                               (int) point.Y);
+  /// <summary>
+  /// Get color of the tile at the specified position.
+  /// </summary>
+  public Color? GetTileColorAt(int x, int y) => tiles.ContainsKey((x, y))
+                                                    ? tiles[(x, y)].color
+                                                    : default;
 
-		/// <summary>
-		/// この <see cref="Tilemap"/> を破棄します。
-		/// </summary>
-		public void Destroy()
-		{
-			foreach (var kv in tiles)
-			{
-				kv.Value.tile.Destroy();
-			}
-			tiles.Clear();
-		}
+  /// <summary>
+  /// Set the tile at the specified position.
+  /// </summary>
+  public void SetTile(Vector point, ITile? tile, Color? color = null) =>
+      SetTile((int) point.X, (int) point.Y, tile, color);
 
-		private Dictionary<(int x, int y), (ITile tile, Color? color)> tiles;
-	}
+  /// <summary>
+  /// Set the tile at the specified position.
+  /// </summary>
+  public void SetTile(int x, int y, ITile? tile, Color? color = null) {
+    if (tile == null)
+      tiles.Remove((x, y));
+    else
+      tiles[(x, y)] = (tile, color ?? DefaultColor);
+  }
+
+  /// <summary>
+  /// Remove all tiles.
+  /// </summary>
+  public void Clear() { tiles.Clear(); }
+
+  /// <summary>
+  /// Draw a line with specified tile.
+  /// </summary>
+  public void Line(int x1, int y1, int x2, int y2, ITile tile) {
+    var steep = Math.Abs(y2 - y1) > Math.Abs(x2 - x1);
+    // 左上から右下に描くよう正規化する
+    if (steep) {
+      Swap(ref x1, ref y1);
+      Swap(ref x2, ref y2);
+    }
+    if (x1 > x2) {
+      Swap(ref x1, ref x2);
+      Swap(ref y1, ref y2);
+    }
+
+    var deltaX = x2 - x1;
+    var deltaY = Math.Abs(y2 - y1);
+    var error = deltaX / 2;
+    int ystep;
+    var y = y1;
+    if (y1 < y2)
+      ystep = 1;
+    else
+      ystep = -1;
+
+    for (var x = x1; x <= x2; x++) {
+      if (steep)
+        this[y, x] = tile;
+      else
+        this[x, y] = tile;
+
+      error -= deltaY;
+      if (error < 0) {
+        y += ystep;
+        error += deltaX;
+      }
+    }
+  }
+
+  /// <summary>
+  /// Fill the specified rectangle with the specified tile.
+  /// </summary>
+  public void Fill(int x1, int y1, int width, int height, ITile tile) {
+    for (var y = y1; y < y1 + height; y++)
+      for (var x = x1; x < x1 + width; x++)
+        this[x, y] = tile;
+  }
+
+  /// <summary>
+  /// Draw a line with specified tile.
+  /// </summary>
+  public void Line(Vector start, Vector end,
+                   ITile tile) => Line((int) start.X, (int) start.Y,
+                                       (int) end.X, (int) end.Y, tile);
+
+  /// <summary>
+  /// Fill the specified rectangle with the specified tile.
+  /// </summary>
+  public void Fill(Vector position, Vector size,
+                   ITile tile) => Line((int) position.X, (int) position.Y,
+                                       (int) size.X, (int) size.Y, tile);
+
+  /// <summary>
+  /// Destroy this <see cref="Tilemap"/>.
+  /// </summary>
+  public virtual void Destroy() {
+    foreach(var kv in tiles) { kv.Value.tile.Destroy(); }
+    tiles.Clear();
+  }
+
+  public IEnumerator<(int x, int y, ITile tile, Color? color)>GetEnumerator() {
+    foreach(var t in tiles)
+        yield return (t.Key.x, t.Key.y, t.Value.tile, t.Value.color);
+  }
+
+  private readonly Dictionary<(int x, int y), (ITile tile, Color? color)>tiles;
+}
 }
