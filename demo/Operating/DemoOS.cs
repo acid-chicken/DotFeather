@@ -38,7 +38,7 @@ namespace DotFeather.Demo {
               .Where(t => t.a != null);
 
       foreach(var (type, attr) in scenes) {
-        // シーンをファイルシステムに追加
+        // シーンをファイルシステムに追�
         // Add scenes to the file system
         var path = attr.Path;
         if (path.IndexOf('/') < 0)

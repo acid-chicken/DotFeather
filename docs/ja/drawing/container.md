@@ -24,7 +24,7 @@ var right = new Sprite(Texture2D.LoadFrom("./right.png"), 16, 0);
 var top = new Sprite(Texture2D.LoadFrom("./top.png"), 0, -16);
 var bottom = new Sprite(Texture2D.LoadFrom("./bottom.png"), 0, 16);
 
-// コンテナーへのスプライト追加
+// コンテナーへのスプライト追�
 container.Add(left);
 container.Add(right);
 container.Add(top);

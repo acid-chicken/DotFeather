@@ -684,7 +684,7 @@ items:
           description: インデックス。
       return:
         type: DotFeather.IDrawable
-        description: 子要素
+        description: 子要�
       content.vb: Public Property Item(index As Integer) As IDrawable
     overload: DotFeather.Container.Item*
     implements:
