@@ -10,11 +10,13 @@ To use `TextDrawable`, initialize like this:
 var text = new TextDrawable("Hello, DotFeather!");
 Root.Add(text);
 ```
+
 Optinally, you can specify text size, font style and color.
 
 ### Use your own font
 
-By default, TextDrawable uses the builtin font, but you can also use your own font or OS-provided fonts as needed.
+By default, TextDrawable uses the builtin font, but you can also use your own
+font or OS-provided fonts as needed.
 
 To change the font, first initialize an instance of the `Font` class.
 
@@ -29,10 +31,12 @@ var sans = new Font("Comic Sans MS", 16);
 var defaultFont = Font.GetDefault(24);
 ```
 
-After initializing the instance, provide it to `TextDrawable` constructor to initialize it.
+After initializing the instance, provide it to `TextDrawable` constructor to
+initialize it.
 
 ```cs
 var text = new TextDrawable("* do you wanna have a bad time?", sans, Color.White);
 Root.add(text);
 ```
+
 Next: [Container](container.md)

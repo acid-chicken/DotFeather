@@ -1,6 +1,5 @@
 # Keyboard Input
 
-
 To get keyboard input, use `DFKeyboard` class.
 
 It has all well-known keys as children.

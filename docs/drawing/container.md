@@ -1,12 +1,16 @@
 # Container
 
-Container is a object like folders, which it can contain other objects as children.
+Container is a object like folders, which it can contain other objects as
+children.
 
-Objects which owned by a container will be drawn at relative position from the container. It means that moving container is also moves all children.
+Objects which owned by a container will be drawn at relative position from the
+container. It means that moving container is also moves all children.
 
-By using this specification, for example, you can create articulated characters, layer system etc.
+By using this specification, for example, you can create articulated characters,
+layer system etc.
 
-To tell you the truth, you used a container before you read this article. In fact, `Root` property is an instance of a container.
+To tell you the truth, you used a container before you read this article. In
+fact, `Root` property is an instance of a container.
 
 I'll show a example to create a container, have sprites, and display it.
 
@@ -32,7 +36,8 @@ container.X = 128;
 container.Y = 96;
 ```
 
-Containers usually draw objects that are outside the container's own area, but you can also configure it to clip overhanging areas. Just write:
+Containers usually draw objects that are outside the container's own area, but
+you can also configure it to clip overhanging areas. Just write:
 
 ```cs
 container.IsTrimmable = true;
@@ -42,6 +47,7 @@ container.Width = 128;
 container.Height = 128;
 ```
 
-As a result, the child object that protrudes from the quadrilateral representing the container area is clipped.
+As a result, the child object that protrudes from the quadrilateral representing
+the container area is clipped.
 
 Next: [9-slice Sprite](./9slice.md)

@@ -2,7 +2,8 @@
 
 Router is a scene manager for DotFeather.
 
-It was provided at the external package named DotFeather.Router, but integrated from v2.
+It was provided at the external package named DotFeather.Router, but integrated
+from v2.
 
 This article shows how to change sceneA, sceneB, and sceneC by using router.
 
@@ -12,7 +13,8 @@ To use router, you need some special settings for the game-class.
 
 ### Start Quickly
 
-You can start quickly by initializing a new instance of `RoutingGameBase` class, instead of generating a new game-class by extending `GameBase` class.
+You can start quickly by initializing a new instance of `RoutingGameBase` class,
+instead of generating a new game-class by extending `GameBase` class.
 
 Describe your entry point as follows:
 
@@ -32,7 +34,8 @@ static void Main()
 }
 ```
 
-Specify a type of the scene you want to load first as the type parameter of the RoutingGameBase class.
+Specify a type of the scene you want to load first as the type parameter of the
+RoutingGameBase class.
 
 ### Start Manually
 
@@ -65,7 +68,8 @@ class Game : GameBase
 
 ## Generate scenes
 
-A scene can be created by inheriting the `Scene` class. It's similar to the inheritance of `GameBase`.
+A scene can be created by inheriting the `Scene` class. It's similar to the
+inheritance of `GameBase`.
 
 ```cs
 public class Root : Scene
@@ -138,20 +142,25 @@ public class SceneC : Scene
 }
 ```
 
-`Router.ChangeScene<T>()` メソッドを実行すると、シーンを遷移できます。第2引数に辞書型変数を渡すことで、次のシーンの `OnStart()` に値を渡せます。
+`Router.ChangeScene<T>()` メソッドを実行すると、シーンを遷移できます。第 2 引数
+に辞書型変数を渡すことで、次のシーンの `OnStart()` に値を渡せます。
 
-You can change scenes by executing the `Router.ChangeScene<T>()` method. You can pass a value to `OnStart()` in the next scene by specifying a dictionary variable as the second argument.
+You can change scenes by executing the `Router.ChangeScene<T>()` method. You can
+pass a value to `OnStart()` in the next scene by specifying a dictionary
+variable as the second argument.
 
 Also like
 
 ```cs
 router.ChangeScene(typeof(SceneA));
 ```
+
 , you can specify `Type` object.
 
 ## Register scenes
 
-In the above example, the scene type was specified directly, but you can also register the scene in advance and call it using a path.
+In the above example, the scene type was specified directly, but you can also
+register the scene in advance and call it using a path.
 
 An example of registering the above three scenes by specifying the path:
 
@@ -169,6 +178,7 @@ An example of transition to a registered scene:
 router.ChangeScene("a");
 ```
 
-Simply replace the part that was directly specifying the type with a path. Of course, you can specify a dictionary variable as the second argument.
+Simply replace the part that was directly specifying the type with a path. Of
+course, you can specify a dictionary variable as the second argument.
 
 Next: [Original Rendering](plugin/render.md)

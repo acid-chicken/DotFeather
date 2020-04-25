@@ -1,6 +1,7 @@
 # Third parties
 
-DotFeather uses third-party software. They are released under different licenses.
+DotFeather uses third-party software. They are released under different
+licenses.
 
 ## OpenTK.NetStandard
 

@@ -1,6 +1,7 @@
 # テキスト
 
-DotFeather ウィンドウ上に文字列を表示するためには、 `TextDrawable` クラスを使用します。
+DotFeather ウィンドウ上に文字列を表示するためには、 `TextDrawable` クラスを使用
+します。
 
 ## 使い方
 
@@ -15,7 +16,9 @@ Root.Add(text);
 
 ### 独自のフォントを使う
 
-標準では、TextDrawable は、DotFeather のシステムに組み込まれたデフォルトフォントを使用します。必要に応じて、用意したフォントや OS が提供するフォントを使用することもできます。
+標準では、TextDrawable は、DotFeather のシステムに組み込まれたデフォルトフォント
+を使用します。必要に応じて、用意したフォントや OS が提供するフォントを使用するこ
+ともできます。
 
 フォントを変更するためには、`Font` クラスのインスタンスをまず初期化します。
 
@@ -30,7 +33,8 @@ var sans = new Font("Comic Sans MS", 16);
 var defaultFont = Font.GetDefault(24);
 ```
 
-インスタンスを初期化したら、`TextDrawable` のコンストラクターに渡して初期化します。
+インスタンスを初期化したら、`TextDrawable` のコンストラクターに渡して初期化しま
+す。
 
 ```cs
 var text = new TextDrawable("* do you wanna have a bad time?", sans, Color.White);
